@@ -6,6 +6,7 @@ Endpoints
 POST  /api/scan/web-api             Start a web API security scan
 POST  /api/scan/dependencies        Start a dependency vulnerability scan
 GET   /api/scan/<scan_id>           Get scan results (with vulnerabilities)
+DELETE /api/scan/<scan_id>          Delete a scan and its related records
 GET   /api/compliance/report/<id>  Get PCI-DSS compliance report for a scan
 GET   /api/reports/pdf/<scan_id>   Download PDF report (generates on demand)
 GET   /api/scans                    List scan history (?limit=10&offset=0)
@@ -285,6 +286,21 @@ def get_scan(scan_id: int):
     result["compliance_status"] = {"pci_dss": compliance_status}
 
     return jsonify(result)
+
+
+@api.delete("/scan/<int:scan_id>")
+def delete_scan(scan_id: int):
+    """DELETE /api/scan/<scan_id> — remove a scan and its related records."""
+    scan = db.session.get(Scan, scan_id)
+    if not scan:
+        return _error(f"Scan {scan_id} not found.", "NOT_FOUND", 404)
+
+    # Cascade deletes vulnerabilities and their compliance mappings.
+    db.session.delete(scan)
+    db.session.commit()
+
+    logger.info("Deleted scan %d", scan_id)
+    return jsonify({"scan_id": scan_id, "message": "Scan deleted"})
 
 
 @api.get("/compliance/report/<int:scan_id>")
