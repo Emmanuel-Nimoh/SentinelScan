@@ -1,0 +1,7 @@
+# Local runtime artifacts
+*.db
+*.db-journal
+*.log
+venv/
+__pycache__/
+.env
