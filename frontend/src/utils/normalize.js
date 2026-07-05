@@ -39,10 +39,11 @@ export function normalizeVulnerability(raw) {
 export function normalizeComplianceRequirement(raw) {
   if (!raw) return null;
   return {
-    requirementId: raw.requirement_id ?? raw.requirementId ?? raw.id,
+    requirementId: raw.pci_requirement ?? raw.requirement_id ?? raw.requirementId ?? raw.id,
     requirementTitle: raw.requirement_title ?? raw.requirementTitle ?? raw.title,
     status: raw.status ?? 'non_compliant',
-    findingCount: raw.finding_count ?? raw.findingCount ?? raw.findings?.length ?? 0,
-    findings: raw.findings ?? [],
+    findingCount:
+      raw.finding_count ?? raw.findingCount ?? (raw.findings ?? raw.vulnerabilities)?.length ?? 0,
+    findings: raw.findings ?? raw.vulnerabilities ?? [],
   };
 }

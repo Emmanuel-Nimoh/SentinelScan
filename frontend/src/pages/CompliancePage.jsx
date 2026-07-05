@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { ShieldAlert } from 'lucide-react';
-import { getComplianceReport, getApiErrorMessage } from '../services/api';
+import { getComplianceReport, getScanResults, getApiErrorMessage } from '../services/api';
 import { normalizeComplianceRequirement } from '../utils/normalize';
 import LoadingSpinner from '../components/Common/LoadingSpinner';
 import ComplianceDashboard from '../components/Compliance/ComplianceDashboard';
@@ -19,13 +19,23 @@ export default function CompliancePage() {
       setLoading(true);
       setError(null);
       try {
-        const response = await getComplianceReport(scanId);
+        const [response, scanResponse] = await Promise.all([
+          getComplianceReport(scanId),
+          // The compliance report has no target; pull it from the scan record.
+          getScanResults(scanId).catch(() => null),
+        ]);
         const data = response.data || {};
         if (isMounted) {
           setReport({
-            target: data.target ?? data.url ?? data.repo_url ?? '',
-            overallCompliance: data.overall_compliance ?? data.overallCompliance ?? 0,
-            requirements: (data.requirements || []).map(normalizeComplianceRequirement),
+            target: data.target ?? data.url ?? data.repo_url ?? scanResponse?.data?.target ?? '',
+            overallCompliance:
+              data.overall_compliance_percentage ??
+              data.overall_compliance ??
+              data.overallCompliance ??
+              0,
+            requirements: (data.requirements ?? data.findings ?? []).map(
+              normalizeComplianceRequirement
+            ),
           });
         }
       } catch (err) {
