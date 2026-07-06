@@ -7,6 +7,7 @@ POST  /api/scan/web-api             Start a web API security scan
 POST  /api/scan/dependencies        Start a dependency vulnerability scan
 GET   /api/scan/<scan_id>           Get scan results (with vulnerabilities)
 DELETE /api/scan/<scan_id>          Delete a scan and its related records
+POST  /api/ai/remediation/<vuln_id> AI-generated remediation guidance for a finding
 GET   /api/compliance/report/<id>  Get PCI-DSS compliance report for a scan
 GET   /api/reports/pdf/<scan_id>   Download PDF report (generates on demand)
 GET   /api/scans                    List scan history (?limit=10&offset=0)
@@ -20,6 +21,7 @@ from functools import wraps
 
 from flask import Blueprint, current_app, jsonify, request, send_file
 
+from ai.remediation import RemediationError, RemediationUnavailable, generate_remediation
 from database import db
 from models import ComplianceMapping, Scan, Vulnerability
 from scanners.api_scanner import scan_web_api
@@ -286,6 +288,33 @@ def get_scan(scan_id: int):
     result["compliance_status"] = {"pci_dss": compliance_status}
 
     return jsonify(result)
+
+
+@api.post("/ai/remediation/<int:vuln_id>")
+def ai_remediation(vuln_id: int):
+    """POST /api/ai/remediation/<vuln_id> — AI-generated remediation guidance.
+
+    Looks up the vulnerability, passes it (with its scan's context) to Claude,
+    and returns structured guidance. Returns 503 when the feature isn't
+    configured (no API key) and 502 when the AI request fails.
+    """
+    vuln = db.session.get(Vulnerability, vuln_id)
+    if not vuln:
+        return _error(f"Vulnerability {vuln_id} not found.", "NOT_FOUND", 404)
+
+    scan = vuln.scan
+    try:
+        guidance = generate_remediation(
+            vuln.to_dict(),
+            target=scan.target if scan else "",
+            scan_type=scan.scan_type if scan else "",
+        )
+    except RemediationUnavailable as exc:
+        return _error(str(exc), "AI_UNAVAILABLE", 503)
+    except RemediationError as exc:
+        return _error(str(exc), "AI_ERROR", 502)
+
+    return jsonify({"vulnerability_id": vuln_id, "remediation": guidance})
 
 
 @api.delete("/scan/<int:scan_id>")
