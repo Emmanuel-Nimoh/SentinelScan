@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Copy, Check } from 'lucide-react';
 import { SeverityBadge } from '../Common/Badge';
+import AIRemediation from './AIRemediation';
 
 export default function ResultsDetail({ vulnerability }) {
   const [copied, setCopied] = useState(false);
@@ -89,6 +90,8 @@ export default function ResultsDetail({ vulnerability }) {
           </div>
         </div>
       )}
+
+      <AIRemediation vulnerabilityId={vulnerability.id} />
     </div>
   );
 }
