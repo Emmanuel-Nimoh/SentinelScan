@@ -46,4 +46,7 @@ export const getScanHistory = (limit = 10, offset = 0) =>
 
 export const deleteScan = (scanId) => api.delete(`/scan/${scanId}`);
 
+// AI (Phase 2): generate remediation guidance for a single vulnerability.
+export const getAIRemediation = (vulnId) => api.post(`/ai/remediation/${vulnId}`);
+
 export default api;
