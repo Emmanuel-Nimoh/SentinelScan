@@ -33,7 +33,9 @@ class Config:
     GITHUB_TOKEN = os.environ.get("GITHUB_TOKEN")
 
     # AI (Anthropic Claude) — Phase 2 remediation guidance
-    ANTHROPIC_API_KEY = os.environ.get("ANTHROPIC_API_KEY")
+    # Strip whitespace/newlines: a trailing space or newline from a copy-paste
+    # is a common cause of a valid key being rejected with 401 invalid x-api-key.
+    ANTHROPIC_API_KEY = (os.environ.get("ANTHROPIC_API_KEY") or "").strip() or None
     ANTHROPIC_MODEL = os.environ.get("ANTHROPIC_MODEL", "claude-opus-4-8")
     ANTHROPIC_MAX_TOKENS = int(os.environ.get("ANTHROPIC_MAX_TOKENS", "2000"))
 
